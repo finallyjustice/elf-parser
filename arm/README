@@ -1,0 +1,3 @@
+hexdump.c - dump the file in hex
+test-darm.c - test how to use darm
+disall.c - disassemble all file
