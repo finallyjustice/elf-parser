@@ -85,7 +85,38 @@ void print_prog_header(Elf32_Phdr *phdr, int num)
 	for(i=0; i<num; i++)
 	{
 		printf("  [%d] ", i);
-		printf("Type(%d) ", phdr[i].p_type);	
+		
+		switch(phdr[i].p_type)
+		{
+			case PT_NULL:
+				printf("Type(%s) ", "NULL");
+				break;
+			case PT_LOAD:
+				printf("Type(%s) ", "LOAD");
+				break;
+			case PT_DYNAMIC:
+				printf("Type(%s) ", "SYNAMIC");
+				break;
+			case PT_INTERP:
+				printf("Type(%s) ", "INTERP");
+				break;
+			case PT_NOTE:
+				printf("Type(%s) ", "NOTE");
+				break;
+			case PT_SHLIB:
+				printf("Type(%s) ", "SHLIB");
+				break;
+			case PT_PHDR:
+				printf("Type(%s) ", "PHDR");
+				break;
+			case PT_TLS:
+				printf("Type(%s) ", "TLS");
+				break;
+			default:
+				printf("Type(%s) ", "UNKNOWN");
+				break;
+		}
+		
 		printf("Offset(0x%08x) ", phdr[i].p_offset);
 		printf("VirtAddr(0x%08x) ", phdr[i].p_vaddr);
 		printf("PhysAddr(0x%08x) ", phdr[i].p_paddr);
@@ -114,7 +145,49 @@ void print_sec_header(Elf32_Shdr *shdr, int num, char *sname)
 	{
 		printf("  [%d] ", i);
 		printf("Name(%s) ", sname+shdr[i].sh_name);
-		printf("Type(%d) ", shdr[i].sh_type);
+		
+		switch(shdr[i].sh_type)
+		{
+			case SHT_NULL:
+				printf("Type(%s) ", "NULL");
+				break;
+			case SHT_PROGBITS:
+				printf("Type(%s) ", "PROGBITS");
+				break;
+			case SHT_SYMTAB:
+				printf("Type(%s) ", "SYMTAB");
+				break;
+			case SHT_STRTAB:
+				printf("Type(%s) ", "STRTAB");
+				break;
+			case SHT_RELA:
+				printf("Type(%s) ", "RELA");
+				break;
+			case SHT_HASH:
+				printf("Type(%s) ", "HASH");
+				break;
+			case SHT_DYNAMIC:
+				printf("Type(%s) ", "DYNAMIC");
+				break;
+			case SHT_NOTE:
+				printf("Type(%s) ", "NOTE");
+				break;
+			case SHT_NOBITS:
+				printf("Type(%s) ", "NOBITS");
+				break;
+			case SHT_REL:
+				printf("Type(%s) ", "REL");
+				break;
+			case SHT_SHLIB:
+				printf("Type(%s) ", "SHLIB");
+				break;
+			case SHT_DYNSYM:
+				printf("Type(%s) ", "DYNSYM");
+				break;
+			dafault:
+				printf("Type(%s) ", "UNKNOWN");
+		}
+		
 		printf("Addr(0x%08x) ", shdr[i].sh_addr);
 		printf("Off(0x%08x) ", shdr[i].sh_offset);
 		printf("Size(0x%x) ", shdr[i].sh_size);
@@ -165,9 +238,6 @@ void print_symbol_table(Elf32_Sym *sym, int num, char *symname)
 				break;
 			case STT_TLS:
 				printf("info(%s) ", "TLS");
-				break;
-			case STT_NUM:
-				printf("info(%s) ", "NUM");
 				break;
 			default: 
 				printf("info(%s) ", "UNKNOWN");
