@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 	int cnt = 0;
 	while(read(fd, &tmp, sizeof(int)) > 0)
 	{
+		printf("%016x\n", tmp);
 		darm_t d;
 		darm_str_t str;
 		

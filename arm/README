@@ -2,3 +2,4 @@ hexdump.c - dump the file in hex
 test-darm.c - test how to use darm
 disall.c - disassemble all file
 readelf.c - parse the elf header of executable file
+instrument.c - disassemble and instrument the text segment
