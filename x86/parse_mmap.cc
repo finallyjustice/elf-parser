@@ -25,7 +25,12 @@ void parse_ehdr(void)
 	elfhdr = (Elf64_Ehdr *)base;
 	shdr = (Elf64_Shdr *)(base + elfhdr->e_shoff);
 	sname = (char *)(base + shdr[elfhdr->e_shstrndx].sh_offset);
-	 
+	
+	printf("e_machine: %d\n", elfhdr->e_machine);
+	printf("e_ident  : ");
+	for (int i = 0; i < EI_NIDENT; i++)
+		printf("%02hhx ", elfhdr->e_ident[i]);
+	printf("\n");
 	printf("Num of Program Header: %d\n", elfhdr->e_phnum);
 	printf("Num of Section Header: %d\n", elfhdr->e_shnum);
 	printf("String Section Index : %d\n", elfhdr->e_shstrndx);
