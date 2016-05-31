@@ -127,6 +127,79 @@ void parse_dynsym_sections(void)
 	}
 }
 
+void parse_xsplice_build_id()
+{
+	for (int i = 0; i < elfhdr->e_shnum; i++) {
+		if (strcmp(sname + shdr[i].sh_name, ".note.gnu.build-id") != 0)
+			continue;
+		
+		char *build_id = (char *)base + shdr[i].sh_offset;
+		printf(".note.gnu.build-id: ");
+		for (int j = 0; j < shdr[i].sh_size; j++)
+			printf("%02hhx", build_id[j]);
+		printf("\n");
+	}
+}
+
+void parse_xsplice_depends()
+{
+	for (int i = 0; i < elfhdr->e_shnum; i++) {
+		if (strcmp(sname + shdr[i].sh_name, ".xsplice.depends") != 0)
+			continue;
+
+		char *depends = (char *)base + shdr[i].sh_offset;
+			printf(".xsplice_depends: ");
+		for (int j = 0; j < shdr[i].sh_size; j++)
+			printf("%02hhx", depends[j]);
+		printf("\n");
+	}
+}
+
+struct xsplice_patch_func {
+	const char *name;
+	void *new_addr;
+	void *old_addr;
+	uint32_t new_size;
+	uint32_t old_size;
+	uint8_t version;
+	uint8_t opaque[31];  
+};  
+
+/* shdr[i].sh_entsize is 0 !!! */
+void parse_xsplice_patch_func()
+{
+	for (int i = 0; i < elfhdr->e_shnum; i++) {
+		if (strcmp(sname + shdr[i].sh_name, ".xsplice.funcs") != 0)
+			continue;
+		struct xsplice_patch_func *func = 
+			(struct xsplice_patch_func *)(base + shdr[i].sh_offset);
+		int sh_entsize = sizeof(struct xsplice_patch_func);
+		int num = shdr[i].sh_size / sh_entsize;
+		
+		for (int j = 0; j < num; j++) {
+			printf("func(%d): name=%s, new_addr=0x%016lx, old_addr=0x%016lx\n",
+					j, 
+					func[j].name, 
+					(unsigned long)func[j].new_addr, 
+					(unsigned long)func[j].old_addr);
+			printf("\tnew_size=%d, old_size=%d, version=%d\n",
+					func[j].new_size, func[j].old_size, func[j].version);
+			printf("\topaque=");
+			for (int k = 0; k < 31; k++)
+				printf("%02hhx ", func[j].opaque[k]);
+			printf("\n");
+		}
+	}
+}
+
+void parse_xsplice(void)
+{
+	printf("\nxsplice info:\n");
+	parse_xsplice_build_id();
+	parse_xsplice_depends();
+	parse_xsplice_patch_func();
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
@@ -143,8 +216,6 @@ int main(int argc, char **argv)
 	stat(filename, &fs);
 	len = fs.st_size;
 
-	printf("file size: %d\n", len);
-
 	fd = open(filename, O_RDWR, S_IRUSR|S_IWUSR);
 	base = (unsigned long)mmap((void *)0, len, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	if (base == (unsigned long)MAP_FAILED) {
@@ -152,14 +223,13 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	printf("fila mapped at 0x%016lx\n", base);
-
 	parse_ehdr();
 	parse_sections();
 	parse_rela_sections();
 	parse_dynsym_sections();
 	parse_dynamic_sections();
 	parse_symtab_sections();
+	parse_xsplice();
 
 	munmap((void *)base, len);
 	close(fd);
