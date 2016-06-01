@@ -62,6 +62,9 @@ void parse_rela_sections(void)
 		for (int j = 0; j < num; j++) {
 			printf("rela(%d): r_offset=%lx, r_info=%lx, r_addend=%ld\n",
 					j, rela[j].r_offset, rela[j].r_info, rela[j].r_addend);
+			printf("\tsym=%lu, type=%lu\n",
+					ELF64_R_SYM(rela[j].r_info),
+					ELF64_R_TYPE(rela[j].r_info));
 		}
 	}
 }
@@ -82,8 +85,8 @@ void parse_symtab_sections(void)
 		char *sdata = (char *)base + shdr[shdr[i].sh_link].sh_offset;
 
 		for (int j = 0; j < num; j++) {
-			printf("sym(%d): st_name=%s, st_value=%lx\n",
-					j, sdata+sym[j].st_name, sym[j].st_value);
+			printf("sym(%d): st_name=%s, st_value=%lx, st_shndx=0x%x\n",
+					j, sdata+sym[j].st_name, sym[j].st_value, sym[j].st_shndx);
 		}
 	}
 }
@@ -132,7 +135,7 @@ void parse_dynsym_sections(void)
 	}
 }
 
-void parse_xsplice_build_id()
+void parse_xsplice_build_id(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
 		if (strcmp(sname + shdr[i].sh_name, ".note.gnu.build-id") != 0)
@@ -146,7 +149,7 @@ void parse_xsplice_build_id()
 	}
 }
 
-void parse_xsplice_depends()
+void parse_xsplice_depends(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
 		if (strcmp(sname + shdr[i].sh_name, ".xsplice.depends") != 0)
@@ -171,7 +174,7 @@ struct xsplice_patch_func {
 };  
 
 /* shdr[i].sh_entsize is 0 !!! */
-void parse_xsplice_patch_func()
+void parse_xsplice_patch_func(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
 		if (strcmp(sname + shdr[i].sh_name, ".xsplice.funcs") != 0)
@@ -182,9 +185,10 @@ void parse_xsplice_patch_func()
 		int num = shdr[i].sh_size / sh_entsize;
 		
 		for (int j = 0; j < num; j++) {
-			printf("func(%d): name=%s, new_addr=0x%016lx, old_addr=0x%016lx\n",
-					j, 
-					func[j].name, 
+			printf("func(%d): name(0x%016lx)=%s, new_addr=0x%016lx, old_addr=0x%016lx\n",
+					j,
+					(unsigned long)func[j].name,
+					func[j].name,
 					(unsigned long)func[j].new_addr, 
 					(unsigned long)func[j].old_addr);
 			printf("\tnew_size=%d, old_size=%d, version=%d\n",
@@ -197,12 +201,30 @@ void parse_xsplice_patch_func()
 	}
 }
 
+void parse_xsplice_strings(void)
+{
+	for (int i = 0; i < elfhdr->e_shnum; i++) {
+		if (strcmp(sname + shdr[i].sh_name, ".xsplice.strings") != 0)
+			continue;
+
+		char *str = (char *)base + shdr[i].sh_offset;
+		printf("\n.xsplice.strings data:\n");
+		for (int j = 0; j < shdr[i].sh_size; j++) {
+			if (j % 16 == 0 && j != 0)
+				printf("\n");
+			printf("(%d)%c ", j, str[j]);
+		}
+		printf("\n");
+	}
+}
+
 void parse_xsplice(void)
 {
 	printf("\nxsplice info:\n");
 	parse_xsplice_build_id();
 	parse_xsplice_depends();
 	parse_xsplice_patch_func();
+	parse_xsplice_strings();
 }
 
 int main(int argc, char **argv)
