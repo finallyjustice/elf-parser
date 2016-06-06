@@ -87,6 +87,10 @@ void parse_symtab_sections(void)
 		for (int j = 0; j < num; j++) {
 			printf("sym(%d): st_name=%s, st_value=%lx, st_shndx=0x%x\n",
 					j, sdata+sym[j].st_name, sym[j].st_value, sym[j].st_shndx);
+			printf("\tst_info=%x, st_bind=%x, st_type=%x\n",
+					sym[j].st_info,
+					ELF64_ST_BIND(sym[j].st_info),
+					ELF64_ST_TYPE(sym[j].st_info));
 		}
 	}
 }
@@ -135,7 +139,7 @@ void parse_dynsym_sections(void)
 	}
 }
 
-void parse_xsplice_build_id(void)
+void parse_livepatch_build_id(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
 		if (strcmp(sname + shdr[i].sh_name, ".note.gnu.build-id") != 0)
@@ -149,21 +153,21 @@ void parse_xsplice_build_id(void)
 	}
 }
 
-void parse_xsplice_depends(void)
+void parse_livepatch_depends(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
-		if (strcmp(sname + shdr[i].sh_name, ".xsplice.depends") != 0)
+		if (strcmp(sname + shdr[i].sh_name, ".livepatch.depends") != 0)
 			continue;
 
 		char *depends = (char *)base + shdr[i].sh_offset;
-			printf(".xsplice_depends: ");
+			printf(".livepatch_depends: ");
 		for (int j = 0; j < shdr[i].sh_size; j++)
 			printf("%02hhx", depends[j]);
 		printf("\n");
 	}
 }
 
-struct xsplice_patch_func {
+struct livepatch_patch_func {
 	const char *name;
 	void *new_addr;
 	void *old_addr;
@@ -174,14 +178,14 @@ struct xsplice_patch_func {
 };  
 
 /* shdr[i].sh_entsize is 0 !!! */
-void parse_xsplice_patch_func(void)
+void parse_livepatch_patch_func(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
-		if (strcmp(sname + shdr[i].sh_name, ".xsplice.funcs") != 0)
+		if (strcmp(sname + shdr[i].sh_name, ".livepatch.funcs") != 0)
 			continue;
-		struct xsplice_patch_func *func = 
-			(struct xsplice_patch_func *)(base + shdr[i].sh_offset);
-		int sh_entsize = sizeof(struct xsplice_patch_func);
+		struct livepatch_patch_func *func = 
+			(struct livepatch_patch_func *)(base + shdr[i].sh_offset);
+		int sh_entsize = sizeof(struct livepatch_patch_func);
 		int num = shdr[i].sh_size / sh_entsize;
 		
 		for (int j = 0; j < num; j++) {
@@ -201,14 +205,14 @@ void parse_xsplice_patch_func(void)
 	}
 }
 
-void parse_xsplice_strings(void)
+void parse_livepatch_strings(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
-		if (strcmp(sname + shdr[i].sh_name, ".xsplice.strings") != 0)
+		if (strcmp(sname + shdr[i].sh_name, ".livepatch.strings") != 0)
 			continue;
 
 		char *str = (char *)base + shdr[i].sh_offset;
-		printf("\n.xsplice.strings data:\n");
+		printf("\n.livepatch.strings data:\n");
 		for (int j = 0; j < shdr[i].sh_size; j++) {
 			if (j % 16 == 0 && j != 0)
 				printf("\n");
@@ -218,13 +222,13 @@ void parse_xsplice_strings(void)
 	}
 }
 
-void parse_xsplice(void)
+void parse_livepatch(void)
 {
-	printf("\nxsplice info:\n");
-	parse_xsplice_build_id();
-	parse_xsplice_depends();
-	parse_xsplice_patch_func();
-	parse_xsplice_strings();
+	printf("\nlivepatch info:\n");
+	parse_livepatch_build_id();
+	parse_livepatch_depends();
+	parse_livepatch_patch_func();
+	parse_livepatch_strings();
 }
 
 int main(int argc, char **argv)
@@ -256,7 +260,7 @@ int main(int argc, char **argv)
 	parse_dynsym_sections();
 	parse_dynamic_sections();
 	parse_symtab_sections();
-	parse_xsplice();
+	parse_livepatch();
 
 	munmap((void *)base, len);
 	close(fd);
