@@ -139,6 +139,49 @@ void parse_dynsym_sections(void)
 	}
 }
 
+/*
+ * gnu.hash https://flapenguin.me/2017/05/10/elf-lookup-dt-gnu-hash
+ * 1st entry (32-bit): nbuckets, number of 32-bit hash buckets
+ * 2nd entry (32-bit): symndx, number of .dynsym symbols which cannot be looked up using gnu.hash
+ * 3rd entry (32-bit): maskwords, number of ELFCLASS sized words in the second part of gnu.hash
+ * 4th entry (32-bit): shift2, a shift count used in the bloom filter
+ * second part: bloom filter, maskwords 32-bit words for ELFCLASS32 and maskwords 64-bit words for ELFCLASS64
+ * third part: nbuckets 32-bit words
+ * fourth part: dynsymcount - symndx 32-bit words (hash value)
+ */
+void parse_hash_sections(void)
+{
+	printf("\n");
+
+	Elf64_Word *mask;
+
+	for (int i = 0; i < elfhdr->e_shnum; i++) {
+		if (shdr[i].sh_type != SHT_GNU_HASH)
+			continue;
+
+		printf("Hash Section: %s, sh_link=%d, sh_info=%d\n",
+				sname + shdr[i].sh_name, shdr[i].sh_link, shdr[i].sh_info);
+
+		Elf32_Word *val = (Elf32_Word *)(base + shdr[i].sh_offset);
+		int num = shdr[i].sh_size / sizeof(Elf32_Word);
+
+		printf("nbuckets: %d\n", val[0]);
+		printf("symndx: %d\n", val[1]);
+		printf("maskwords: %d\n", val[2]);
+		printf("shift2: %d\n", val[3]);
+
+		mask = (Elf64_Word *)&val[4];
+
+		for (int j = 0; j < val[2]; j++) {
+			printf("(%d)boomsize: 0x%016x\n", j, mask[j]);
+		}
+
+		for (int j = 4 + val[2] * 2; j < num; j++) {
+			printf("%d: 0x%x\n", j, val[j]);
+		}
+	}
+}
+
 void parse_livepatch_build_id(void)
 {
 	for (int i = 0; i < elfhdr->e_shnum; i++) {
@@ -259,6 +302,7 @@ int main(int argc, char **argv)
 	parse_rela_sections();
 	parse_dynsym_sections();
 	parse_dynamic_sections();
+	parse_hash_sections();
 	parse_symtab_sections();
 	parse_livepatch();
 
